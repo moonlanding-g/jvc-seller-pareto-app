@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>JVC Seller Pareto App</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+.tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+.tab { padding: 10px 20px; background: #ddd; cursor: pointer; border-radius: 5px; }
+.tab.active { background: #007bff; color: white; }
+.section { display: none; }
+.section.active { display: block; }
+.strategy { background: white; margin: 10px 0; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.strategy h3 { margin-top: 0; color: #007bff; }
+form { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+input, select, textarea { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
+button { background: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+.contact { background: white; margin: 5px 0; padding: 10px; border-radius: 5px; border-left: 4px solid #007bff; }
+</style>
+</head>
+<body>
+<h1>JVC Seller Prospecting App (Pareto)</h1>
+<div class="tabs">
+  <div class="tab active" onclick="showSection('strategies')">20 Strategies & Scenarios</div>
+  <div class="tab" onclick="showSection('log')">Contact Log</div>
+</div>
+
+<div id="strategies" class="section active">
+  <h2>20 Strategies & Conversation Scenarios</h2>
+  <div id="strategy-list"></div>
+</div>
+
+<div id="log" class="section">
+  <h2>Contact Log</h2>
+  <form id="contact-form">
+    <input type="text" id="name" placeholder="Name" required>
+    <input type="tel" id="phone" placeholder="Phone Number" required>
+    <input type="text" id="area" placeholder="Area (e.g. JVC)" value="JVC">
+    <input type="text" id="building" placeholder="Building Name" required>
+    <select id="status">
+      <option>New</option>
+      <option>Contacted</option>
+      <option>Follow-up</option>
+      <option>Interested</option>
+      <option>Not Interested</option>
+      <option>Listed</option>
+    </select>
+    <textarea id="notes" placeholder="Notes / Next step"></textarea>
+    <button type="submit">Add Contact</button>
+  </form>
+  <div id="contact-list"></div>
+</div>
+
+<script>
+const strategies = [
+  {title: "1. Expired Listing Power Hour", scenario: "Contact expired 1BR owners with DLD comps.", convo: "Hi [Name], I saw your 1-bed in [Building] came off the market. Recent sales are AED 980k-1.05M. Still open to selling if realistic?"},
+  {title: "2. Targeted Building CMA", scenario: "Offer free valuation to owners in one building.", convo: "Hi [Name], tracking sales in [Building]. Recent 1-beds closed AED 980k-1.05M. Want a free snapshot?"},
+  {title: "3. Sphere Ask", scenario: "Ask network for sellers.", convo: "Hi [Name], do you know anyone thinking of selling in JVC? Happy to help with free valuation."},
+  {title: "4. Near-Handover Investor", scenario: "Reach owners facing final payments.", convo: "Hi, many owners near handover in JVC are reviewing exit options. Want realistic resale numbers?"},
+  {title: "5. FSBO Follow-up", scenario: "Contact FSBO after 2-3 weeks.", convo: "Noticed your FSBO. Getting serious offers? Free comps based on last week’s DLD sales if useful."},
+  {title: "6. Price Reduction Outreach", scenario: "Contact owners who already reduced price.", convo: "Saw the price reduction on your unit. Recent closed deals are still in AED X-Y. Open to a fresh plan?"},
+  {title: "7. Vacant Unit Approach", scenario: "Owners of vacant properties.", convo: "Vacant units add carrying costs. If you want capital working elsewhere, I can show a realistic 30-45 day sale timeline."},
+  {title: "8. Absentee Investor", scenario: "Overseas owners with yield pressure.", convo: "With new supply in JVC, some owners are reviewing hold vs exit. Want current sale comps?"},
+  {title: "9. Follow-up Day 3", scenario: "Second touch on no-reply.", convo: "Just checking if you saw the note about recent sales in [Building]. Happy to send the numbers."},
+  {title: "10. Objection: Open Listing", scenario: "Owner wants multiple agents.", convo: "Understood. In practice exclusives sell faster and cleaner in JVC because portals prioritize them. Happy to show the difference."},
+  {title: "11. Objection: Price Too High", scenario: "Owner expects higher price.", convo: "Closed deals are what buyers pay. Listing much above usually reduces activity. Want to see the exact transactions?"},
+  {title: "12. Positive Interest", scenario: "Owner wants to move forward.", convo: "Great. I’ll send the comps and a simple 90-day exclusive plan. What’s your ideal timeline?"},
+  {title: "13. Relocation Seller", scenario: "Owner moving out of Dubai.", convo: "Heard you may be relocating. If timing is tight, we can position for a clean, realistic sale."},
+  {title: "14. Profit-Taking Owner", scenario: "Long-term owner considering exit.", convo: "You’ve owned since [year]. Strong gains. Want to see current net proceeds based on recent comps?"},
+  {title: "15. Multiple Properties", scenario: "Investor consolidating portfolio.", convo: "Managing several units can be heavy. Happy to review which ones make sense to exit now."},
+  {title: "16. Inheritance / Estate", scenario: "Owners from inheritance.", convo: "If the property is part of an estate, we can handle a clean, private sale process."},
+  {title: "17. Content-Driven Inbound", scenario: "Post “What’s my JVC unit worth?” and respond.", convo: "Thanks for asking. Based on recent sales in [Building], similar units are AED X-Y. Want the full list?"},
+  {title: "18. Building Farming Deep", scenario: "Circle prospect around a recent sale.", convo: "A similar unit just sold in [Building] for AED X. Happy to share what that means for yours."},
+  {title: "19. Soft Re-engagement", scenario: "Contact who said “maybe later”.", convo: "Just checking in. Market in [Building] is still active. Any update on your timeline?"},
+  {title: "20. Close for Form A", scenario: "Ready owner to exclusive.", convo: "Based on the comps, listing at AED X with an exclusive 90-day plan should get strong activity. Ready to move forward with Form A?"}
+];
+
+function renderStrategies() {
+  const list = document.getElementById('strategy-list');
+  strategies.forEach(s => {
+    list.innerHTML += `<div class="strategy"><h3>${s.title}</h3><p><strong>Scenario:</strong> ${s.scenario}</p><p><strong>Exact Convo:</strong> ${s.convo}</p></div>`;
+  });
+}
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Contact Log
+let contacts = JSON.parse(localStorage.getItem('jvcContacts') || '[]');
+
+function renderContacts() {
+  const list = document.getElementById('contact-list');
+  list.innerHTML = contacts.map((c, i) => `
+    <div class="contact">
+      <strong>${c.name}</strong> | ${c.phone} | ${c.area} - ${c.building}<br>
+      Status: ${c.status} | Notes: ${c.notes || '-'}
+      <button onclick="deleteContact(${i})">Delete</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('contact-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const contact = {
+    name: document.getElementById('name').value,
+    phone: document.getElementById('phone').value,
+    area: document.getElementById('area').value,
+    building: document.getElementById('building').value,
+    status: document.getElementById('status').value,
+    notes: document.getElementById('notes').value
+  };
+  contacts.push(contact);
+  localStorage.setItem('jvcContacts', JSON.stringify(contacts));
+  renderContacts();
+  e.target.reset();
+});
+
+function deleteContact(i) {
+  contacts.splice(i, 1);
+  localStorage.setItem('jvcContacts', JSON.stringify(contacts));
+  renderContacts();
+}
+
+renderStrategies();
+renderContacts();
+</script>
+</body>
+</html>
